@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E30613">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Квиз «День борща» × MAGGI</title>
+<style>
+  :root{
+    --red:#E30613;
+    --red-dark:#B00010;
+    --yellow:#FFD200;
+    --cream:#FFFBEA;
+    --ink:#2B1B12;
+    --muted:#7A6A5E;
+    --white:#FFFFFF;
+    --radius:20px;
+    --shadow:0 10px 30px rgba(176,0,16,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--yellow);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.35) 0 60px, transparent 61px),
+      radial-gradient(circle at 90% 85%, rgba(227,6,19,.10) 0 120px, transparent 121px);
+    background-attachment:fixed;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;justify-content:center;
+    padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+    overscroll-behavior-y:none;
+  }
+  button,input{font-family:inherit}
+  button{touch-action:manipulation}
+  .app{width:100%;max-width:480px;display:flex;flex-direction:column}
+
+  /* ---------- Логотип (заглушка — замените на официальный файл) ---------- */
+  .logo{
+    align-self:center;
+    background:var(--red);
+    color:var(--white);
+    border:4px solid var(--yellow);
+    box-shadow:0 0 0 3px var(--red), var(--shadow);
+    border-radius:999px;
+    padding:10px 34px 8px;
+    font-weight:900;
+    font-size:40px;
+    letter-spacing:2px;
+    font-style:italic;
+    line-height:1;
+    transform:rotate(-3deg);
+    user-select:none;-webkit-user-select:none;
+    margin:6px 0 2px;
+  }
+  .logo.small{font-size:20px;padding:6px 14px 5px;border-width:3px;box-shadow:0 0 0 2px var(--red);margin:0;flex-shrink:0}
+
+  .card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 18px}
+  .screen{display:none;flex-direction:column;gap:14px;animation:fade .35s ease}
+  .screen.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .page-title{
+    text-align:center;font-size:30px;line-height:1.15;font-weight:900;color:var(--red);
+    margin:4px 0 2px;text-wrap:balance;
+  }
+  @media (max-width:370px){ .page-title{font-size:25px} }
+  h1{font-size:25px;line-height:1.15;color:var(--red);font-weight:900}
+  .lead{color:var(--muted);font-size:15px;line-height:1.45;margin-top:8px}
+  .badge{
+    display:inline-block;background:var(--yellow);color:var(--red-dark);
+    font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+    padding:5px 10px;border-radius:999px;
+  }
+  .rules{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .rules span{background:var(--cream);border:1px solid var(--yellow);border-radius:12px;padding:6px 10px;font-size:13px;font-weight:600}
+
+  /* ---------- Форма ---------- */
+  form{display:flex;flex-direction:column;gap:12px}
+  label{font-size:14px;font-weight:700}
+  .field{display:flex;flex-direction:column;gap:6px}
+  input{
+    width:100%;font-size:16px; /* 16px — iOS не зумит страницу при фокусе */
+    padding:14px 16px;border-radius:14px;
+    border:2px solid #F0E3C0;background:var(--cream);color:var(--ink);outline:none;transition:.2s;
+    -webkit-appearance:none;appearance:none;
+  }
+  input:focus{border-color:var(--red);background:var(--white)}
+  input.invalid{border-color:var(--red);background:#FFF0F0}
+  .error{color:var(--red);font-size:12px;min-height:14px}
+
+  .btn{
+    appearance:none;-webkit-appearance:none;border:none;cursor:pointer;width:100%;
+    background:var(--red);color:var(--white);
+    font-size:17px;font-weight:800;padding:16px;min-height:56px;border-radius:16px;
+    box-shadow:0 6px 0 var(--red-dark);transition:transform .1s, box-shadow .1s;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--red-dark)}
+  .btn.secondary{background:var(--yellow);color:var(--red-dark);box-shadow:0 6px 0 #D9B000;border:2px solid var(--white)}
+  .btn.secondary:active{box-shadow:0 2px 0 #D9B000}
+  .btn.ghost{background:transparent;color:var(--red-dark);box-shadow:none;font-size:15px;padding:10px;min-height:44px;text-decoration:underline}
+  .btn.ghost:active{transform:none}
+
+  /* ---------- Экран вопроса ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:5;
+    display:flex;align-items:center;gap:12px;
+    background:var(--yellow);
+    margin:calc(-1 * max(14px,env(safe-area-inset-top))) -4px 0;
+    padding:max(14px,env(safe-area-inset-top)) 4px 10px;
+  }
+  .progress-wrap{flex:1;min-width:0}
+  .progress-label{font-size:13px;font-weight:800;color:var(--red-dark);margin-bottom:6px;white-space:nowrap}
+  .progress{height:10px;background:rgba(255,255,255,.7);border-radius:999px;overflow:hidden}
+  .progress > div{height:100%;background:var(--red);width:0;transition:width .4s ease;border-radius:999px}
+
+  .timer{position:relative;width:72px;height:72px;flex-shrink:0}
+  .timer svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+  .timer .track{stroke:rgba(255,255,255,.8)}
+  .timer .bar{stroke:var(--red-dark);stroke-linecap:round;transition:stroke-dashoffset .3s linear, stroke .3s}
+  .timer .num{
+    position:absolute;inset:10px;display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:23px;color:var(--red-dark);font-variant-numeric:tabular-nums;
+    background:var(--white);border-radius:50%;
+    box-shadow:inset 0 0 0 2px var(--yellow);
+  }
+  .timer.warn .bar{stroke:var(--red)}
+  .timer.warn .num{color:var(--white);background:var(--red);box-shadow:none;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+  .q-cat{margin-bottom:10px}
+  .q-text{font-size:19px;font-weight:800;line-height:1.35}
+
+  .answers{display:flex;flex-direction:column;gap:10px}
+  .answer{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+    background:var(--white);border:2px solid #F3E6C2;border-radius:16px;
+    padding:13px 14px;min-height:60px;font-size:16px;font-weight:600;line-height:1.3;color:var(--ink);
+    transition:transform .1s, border-color .2s, background .2s;
+    box-shadow:0 3px 0 rgba(0,0,0,.05);
+    user-select:none;-webkit-user-select:none;
+  }
+  .answer:active:not(:disabled){transform:scale(.98)}
+  .answer .letter{
+    flex-shrink:0;width:34px;height:34px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--yellow);color:var(--red-dark);font-weight:900;
+  }
+  .answer .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+  .answer .mark{flex-shrink:0;font-size:20px;font-weight:900}
+  .answer:disabled{cursor:default;color:var(--ink)}
+  .answer.correct{background:var(--yellow);border-color:var(--red)}
+  .answer.correct .letter{background:var(--red);color:var(--white)}
+  .answer.wrong{background:var(--red);border-color:var(--red-dark);color:var(--white)}
+  .answer.wrong .letter{background:var(--white);color:var(--red)}
+  .answer.dim{opacity:.45}
+
+  .feedback{text-align:center;font-weight:800;font-size:15px;min-height:22px;color:var(--red-dark);padding-bottom:6px}
+
+  /* ---------- Финал ---------- */
+  .result-circle{
+    width:160px;height:160px;border-radius:50%;margin:4px auto;
+    background:var(--red);color:var(--white);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:8px solid var(--yellow);box-shadow:var(--shadow);
+  }
+  .result-circle b{font-size:54px;line-height:1}
+  .result-circle small{font-size:14px;opacity:.9;margin-top:4px}
+  .result-title{text-align:center;font-size:22px;font-weight:900;color:var(--red)}
+  .result-sub{text-align:center;color:var(--muted);font-size:15px;line-height:1.4}
+  .summary{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px}
+  .summary div{height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px}
+  .summary .ok{background:var(--yellow);color:var(--red-dark)}
+  .summary .no{background:var(--red);color:var(--white)}
+  .meta{font-size:13px;color:var(--muted);text-align:center;overflow-wrap:anywhere}
+  .actions{display:flex;flex-direction:column;gap:12px}
+  .status{text-align:center;font-size:13px;font-weight:700;color:var(--red-dark);min-height:18px}
+
+  .toast{
+    position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));
+    transform:translateX(-50%) translateY(160px);
+    background:var(--ink);color:var(--white);padding:12px 18px;border-radius:12px;font-size:14px;
+    transition:transform .3s;z-index:20;width:max-content;max-width:90vw;text-align:center;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  footer{text-align:center;font-size:12px;color:var(--red-dark);opacity:.75}
+
+  /* ---------- Узкие экраны (iPhone SE, старые Android) ---------- */
+  @media (max-width:370px){
+    .logo{font-size:32px;padding:8px 26px 6px}
+    .logo.small{display:none}
+    h1{font-size:22px}
+    .card{padding:18px 14px}
+    .timer{width:62px;height:62px}
+    .timer .num{inset:9px;font-size:19px}
+    .q-text{font-size:17px}
+    .answer{font-size:15px;padding:11px 12px;min-height:54px;gap:10px}
+    .answer .letter{width:30px;height:30px}
+    .result-circle{width:136px;height:136px}
+    .result-circle b{font-size:46px}
+  }
+  /* Низкие экраны / горизонтальная ориентация */
+  @media (max-height:640px){
+    .q-text{font-size:17px}
+    .card{padding:16px 14px}
+    .answer{min-height:50px;padding:10px 12px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= ЭКРАН 1: РЕГИСТРАЦИЯ ================= -->
+  <section class="screen active" id="screen-start">
+    <h1 class="page-title">10 вопросов о борще и бренде Maggi</h1>
+    <div class="logo" aria-label="MAGGI">MAGGI</div>
+    <div class="card">
+      <span class="badge">День борща</span>
+      <h1 style="margin-top:10px">Насколько хорошо вы знаете борщ?</h1>
+      <p class="lead">10 вопросов о борще и бренде MAGGI. Отвечайте быстро — подсматривать в Google некогда!</p>
+      <div class="rules">
+        <span>❓ 10 вопросов</span>
+        <span>⏱ 30 сек на ответ</span>
+        <span>🏆 1 балл за верный</span>
+      </div>
+    </div>
+    <div class="card">
+      <form id="reg-form" novalidate autocomplete="on">
+        <div class="field">
+          <label for="fio">ФИО (Фамилия, Имя, Отчество) *</label>
+          <input id="fio" name="fio" type="text" autocomplete="name" autocapitalize="words" enterkeyhint="next" placeholder="Иванов Иван Иванович" maxlength="100">
+          <div class="error" id="fio-err"></div>
+        </div>
+        <div class="field">
+          <label for="biz">Бизнес *</label>
+          <input id="biz" name="biz" type="text" autocomplete="organization" autocapitalize="sentences" enterkeyhint="next" placeholder="например, Maggi" maxlength="100">
+          <div class="error" id="biz-err"></div>
+        </div>
+        <div class="field">
+          <label for="dept">Отдел *</label>
+          <input id="dept" name="dept" type="text" autocomplete="organization-title" autocapitalize="sentences" enterkeyhint="go" placeholder="например, CDT" maxlength="80">
+          <div class="error" id="dept-err"></div>
+        </div>
+        <button class="btn" type="submit">Начать квиз 🍲</button>
+      </form>
+    </div>
+    <footer>Таймер запустится сразу после нажатия кнопки</footer>
+  </section>
+
+  <!-- ================= ЭКРАН 2: ВОПРОС ================= -->
+  <section class="screen" id="screen-quiz">
+    <div class="topbar">
+      <div class="logo small">MAGGI</div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progress-label">Вопрос 1 из 10</div>
+        <div class="progress"><div id="progress-bar"></div></div>
+      </div>
+      <div class="timer" id="timer" role="timer">
+        <svg viewBox="0 0 76 76" aria-hidden="true">
+          <circle class="track" cx="38" cy="38" r="34" fill="none" stroke-width="7"/>
+          <circle class="bar" id="timer-bar" cx="38" cy="38" r="34" fill="none" stroke-width="7"/>
+        </svg>
+        <div class="num" id="timer-num">30</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="q-cat"><span class="badge" id="q-cat">Разминочный</span></div>
+      <div class="q-text" id="q-text"></div>
+    </div>
+
+    <div class="answers" id="answers"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <!-- ================= ЭКРАН 3: РЕЗУЛЬТАТ ================= -->
+  <section class="screen" id="screen-result">
+    <div class="logo" aria-label="MAGGI">MAGGI</div>
+    <div class="card" style="display:flex;flex-direction:column;gap:12px">
+      <div class="result-circle"><b id="score">0</b><small>из 10</small></div>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div class="summary" id="summary"></div>
+      <div class="meta" id="result-meta"></div>
+    </div>
+    <div class="status" id="send-status"></div>
+    <div class="actions">
+      <button class="btn" id="btn-share">📤 Отправить результат</button>
+      <button class="btn secondary" id="btn-export">⬇ Скачать CSV</button>
+      <button class="btn ghost" id="btn-copy">Скопировать результат текстом</button>
+      <button class="btn ghost" id="btn-export-all">Все результаты на этом устройстве (CSV)</button>
+      <button class="btn ghost" id="btn-restart">Пройти заново (новый участник)</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   НАСТРОЙКИ
+   ===================================================================== */
+var TIME_PER_QUESTION = 30;   // секунд на вопрос
+var WARN_AT = 10;             // с какого остатка таймер становится красным
+var FEEDBACK_DELAY = 1600;    // пауза после ответа, мс
+
+/* Адрес для автоматического сбора результатов (рекомендуется при прохождении по QR):
+   например, веб-приложение Google Apps Script, которое добавляет строку в таблицу.
+   Пусто — результаты остаются на телефоне участника (кнопки «Отправить» / «Скачать CSV»). */
+var SUBMIT_URL = "";
+
+var STORAGE_KEY  = "maggi_borsch_quiz_results_v2";
+var PROGRESS_KEY = "maggi_borsch_quiz_progress_v2";
+
+/* =====================================================================
+   ВОПРОСЫ (correct — индекс правильного ответа: 0=А, 1=Б, 2=В, 3=Г)
+   ===================================================================== */
+var QUESTIONS = [
+  { cat:"Разминочный",
+    q:"Какой овощ дает классическому борщу его знаменитый рубиновый цвет?",
+    a:["Помидор","Красный болгарский перец","Свекла","Красный лук"], correct:2 },
+  { cat:"История бренда",
+    q:"Все мы любим заправку MAGGI для борща. А как звали создателя бренда — человека по фамилии Магги, который в XIX веке придумал быстрые супы?",
+    a:["Джузеппе","Юлиус","Марио","Густав"], correct:1 },
+  { cat:"На время",
+    q:"В заправке «MAGGI для Борща» уже есть все необходимые овощи и специи. Какого из этих ингредиентов НЕТ в составе классической заправки?",
+    a:["Свекла","Морковь","Капуста","Пастернак (белый корень)"], correct:2 },
+  { cat:"Кулинарный лайфхак",
+    q:"Чтобы свекла не потеряла яркий цвет и не стала бурой, в зажарку добавляют немного кислоты. А какой компонент в заправке MAGGI отвечает за сохранение яркого цвета?",
+    a:["Яблочное пюре","Уксус и лимонная кислота","Сок граната","Красное вино"], correct:1 },
+  { cat:"Географический",
+    q:"На Кубани любят варить борщ со специальным сортом свеклы — на срезе она не темно-бордовая, а с белыми кольцами. Как в народе называют такую свеклу?",
+    a:["Тигровая","Полосатик","Борщевая (или Кубанская)","Мраморная"], correct:2 },
+  { cat:"Космический",
+    q:"Борщ — блюдо космического масштаба! В каком виде его впервые отправили на орбиту для советских космонавтов?",
+    a:["В виде сухого порошка","В алюминиевой тубе (как зубная паста)","В жестяной консервной банке","Замороженным куском льда"], correct:1 },
+  { cat:"Каверзный",
+    q:"Существует так называемый «Черниговский борщ». Какой неожиданный фрукт входит в его традиционный рецепт наряду со свеклой и фасолью?",
+    a:["Слива","Кислые яблоки","Груша","Айва"], correct:1 },
+  { cat:"Поп-культура",
+    q:"«Индекс борща» — экономический показатель по аналогии с «Индексом Биг Мака». Сколько продуктов входит в стандартную «борщевую корзину» для его расчета?",
+    a:["4 (мясо, свекла, капуста, картофель)","6 (мясо, свекла, капуста, картофель, морковь, лук)","10 (включая сметану, чеснок, зелень и хлеб)","1 (только пачка заправки MAGGI)"], correct:1 },
+  { cat:"Брендовый",
+    q:"Какой стандартный вес у одной классической упаковки заправки «MAGGI для борща»? Гуглить некогда — вспоминайте пачку!",
+    a:["100 граммов","150 граммов","250 граммов","330 граммов"], correct:2 },
+  { cat:"Рекордный",
+    q:"В России установили рекорд по приготовлению самого большого объема борща в одном котле. Сколько примерно литров супа сварили повара?",
+    a:["Около 500 литров","Около 1 500 литров","Более 3 000 литров","Ровно 10 000 литров"], correct:2 }
+];
+var LETTERS = ["А","Б","В","Г"];
+
+/* =====================================================================
+   СОСТОЯНИЕ
+   ===================================================================== */
+var state = {
+  fio:"", biz:"", dept:"", index:0, score:0, answers:[],
+  timeLeft:TIME_PER_QUESTION, timerId:null, locked:false,
+  qStartedAt:0, startedAt:0, lastResult:null
+};
+
+/* =====================================================================
+   УТИЛИТЫ
+   ===================================================================== */
+function $(id){ return document.getElementById(id); }
+function show(id){
+  var list=document.querySelectorAll(".screen");
+  for(var i=0;i<list.length;i++) list[i].classList.remove("active");
+  $(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+var toastTimer;
+function toast(msg){
+  var t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove("show"); },2800);
+}
+function pad(n){ return (n<10?"0":"")+n; }
+function fmtDate(d){
+  return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+}
+/* localStorage может быть недоступен (приватный режим, встроенные браузеры) — не падаем */
+function storeGet(key,fallback){ try{ var v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
+function storeSet(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){} }
+function storeDel(key){ try{ localStorage.removeItem(key); }catch(e){} }
+
+/* =====================================================================
+   РЕГИСТРАЦИЯ
+   ===================================================================== */
+$("fio").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){ e.preventDefault(); $("biz").focus(); }
+});
+$("biz").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){ e.preventDefault(); $("dept").focus(); }
+});
+$("reg-form").addEventListener("submit",function(e){
+  e.preventDefault();
+  var fio=$("fio").value.trim().replace(/\s+/g," ");
+  var biz=$("biz").value.trim().replace(/\s+/g," ");
+  var dept=$("dept").value.trim().replace(/\s+/g," ");
+
+  /* ФИО: минимум 3 слова (фамилия, имя, отчество).
+     Если у кого-то нет отчества — поменяйте MIN_FIO_WORDS на 2. */
+  var MIN_FIO_WORDS=3;
+  var fioErr = fio.length<3 ? "Укажите фамилию, имя и отчество"
+             : fio.split(" ").length<MIN_FIO_WORDS ? "Нужны фамилия, имя и отчество" : "";
+  var bizErr  = biz.length<2  ? "Укажите бизнес-направление или компанию" : "";
+  var deptErr = dept.length<2 ? "Укажите название отдела" : "";
+
+  $("fio").classList.toggle("invalid",!!fioErr);   $("fio-err").textContent=fioErr;
+  $("biz").classList.toggle("invalid",!!bizErr);   $("biz-err").textContent=bizErr;
+  $("dept").classList.toggle("invalid",!!deptErr); $("dept-err").textContent=deptErr;
+  if(fioErr){ $("fio").focus(); return; }
+  if(bizErr){ $("biz").focus(); return; }
+  if(deptErr){ $("dept").focus(); return; }
+
+  if(document.activeElement) document.activeElement.blur(); // убрать клавиатуру
+  state.fio=fio; state.biz=biz; state.dept=dept;
+  startQuiz();
+});
+["fio","biz","dept"].forEach(function(id){
+  $(id).addEventListener("input",function(){ $(id).classList.remove("invalid"); $(id+"-err").textContent=""; });
+});
+
+/* =====================================================================
+   КВИЗ
+   ===================================================================== */
+var CIRC = 2*Math.PI*34;
+$("timer-bar").style.strokeDasharray = CIRC;
+
+function startQuiz(){
+  state.index=0; state.score=0; state.answers=[];
+  state.startedAt=Date.now();
+  state.qStartedAt=Date.now();
+  saveProgress();
+  show("screen-quiz");
+  renderQuestion(false);
+}
+
+/* Прогресс сохраняется после каждого шага: если телефон перезагрузит вкладку
+   (входящий звонок, переключение приложений, случайное обновление),
+   участник вернется на тот же вопрос, а таймер продолжит идти. */
+function saveProgress(){
+  storeSet(PROGRESS_KEY,{
+    fio:state.fio, biz:state.biz, dept:state.dept, index:state.index, score:state.score,
+    answers:state.answers, startedAt:state.startedAt, qStartedAt:state.qStartedAt
+  });
+}
+
+function renderQuestion(resume){
+  var q=QUESTIONS[state.index];
+  state.locked=false;
+  if(!resume){ state.qStartedAt=Date.now(); saveProgress(); }
+
+  $("progress-label").textContent="Вопрос "+(state.index+1)+" из "+QUESTIONS.length;
+  $("progress-bar").style.width=(state.index/QUESTIONS.length*100)+"%";
+  $("q-cat").textContent=q.cat;
+  $("q-text").textContent=q.q;
+  $("feedback").textContent="";
+
+  var box=$("answers"); box.innerHTML="";
+  q.a.forEach(function(txt,i){
+    var b=document.createElement("button");
+    b.className="answer"; b.type="button";
+    b.innerHTML='<span class="letter">'+LETTERS[i]+'</span><span class="txt"></span><span class="mark"></span>';
+    b.querySelector(".txt").textContent=txt;
+    b.addEventListener("click",function(){ answer(i); });
+    box.appendChild(b);
+  });
+  window.scrollTo(0,0);
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(state.timerId);
+  tick();
+  state.timerId=setInterval(tick,250);
+}
+/* Время считается по реальным часам: при блокировке экрана или сворачивании
+   браузера отсчет не останавливается и не «отстает». */
+function tick(){
+  if(state.locked) return;
+  var elapsed=Math.floor((Date.now()-state.qStartedAt)/1000);
+  state.timeLeft=Math.max(0,TIME_PER_QUESTION-elapsed);
+  $("timer-num").textContent=state.timeLeft;
+  $("timer-bar").style.strokeDashoffset = CIRC*(1-state.timeLeft/TIME_PER_QUESTION);
+  $("timer").classList.toggle("warn", state.timeLeft<=WARN_AT);
+  if(state.timeLeft<=0){ clearInterval(state.timerId); answer(null); }
+}
+document.addEventListener("visibilitychange",function(){
+  if(!document.hidden && $("screen-quiz").classList.contains("active")) tick();
+});
+
+function answer(chosen){
+  if(state.locked) return;
+  state.locked=true;
+  clearInterval(state.timerId);
+
+  var q=QUESTIONS[state.index];
+  var timeout = chosen===null;
+  var ok = !timeout && chosen===q.correct;
+  if(ok) state.score++;
+
+  state.answers.push({
+    q:state.index+1, chosen: timeout ? "—" : LETTERS[chosen],
+    correct:LETTERS[q.correct], ok:ok, timeout:timeout,
+    timeSpent: Math.min(TIME_PER_QUESTION, Math.round((Date.now()-state.qStartedAt)/1000))
+  });
+
+  var btns=document.querySelectorAll(".answer");
+  for(var i=0;i<btns.length;i++){
+    var b=btns[i]; b.disabled=true;
+    if(i===q.correct){ b.classList.add("correct"); b.querySelector(".mark").textContent="✓"; }
+    else if(i===chosen){ b.classList.add("wrong"); b.querySelector(".mark").textContent="✕"; }
+    else b.classList.add("dim");
+  }
+
+  $("feedback").textContent = timeout ? "⏰ Время вышло! Ответ не засчитан"
+                           : ok ? "🎉 Верно! +1 балл" : "Не угадали — правильный ответ выделен";
+  try{ if(navigator.vibrate) navigator.vibrate(ok?30:[40,40,40]); }catch(e){}
+
+  state.index++;
+  var done = state.index>=QUESTIONS.length;
+  if(!done){ state.qStartedAt=Date.now()+FEEDBACK_DELAY; saveProgress(); }
+
+  setTimeout(function(){
+    if(!done) renderQuestion(true); // qStartedAt уже выставлен
+    else finish();
+  }, FEEDBACK_DELAY);
+}
+
+/* =====================================================================
+   ФИНАЛ И ВЫГРУЗКА
+   ===================================================================== */
+function finish(){
+  var finishedAt=Date.now();
+  var s=state.score, n=QUESTIONS.length;
+  $("score").textContent=s;
+  var title, sub;
+  if(s===n){ title="Борщевой гуру! 👑"; sub="Идеальный результат — вы знаете о борще всё."; }
+  else if(s>=8){ title="Шеф-повар! 👨‍🍳"; sub="Отличный результат, до идеала совсем чуть-чуть."; }
+  else if(s>=5){ title="Хороший кулинар! 🥄"; sub="Неплохо! Есть повод сварить борщ и закрепить знания."; }
+  else { title="Пора на кухню! 🍲"; sub="Не беда — с заправкой MAGGI борщ получится в любом случае."; }
+  $("result-title").textContent=title;
+  $("result-sub").textContent=sub;
+
+  $("summary").innerHTML = state.answers.map(function(a){
+    return '<div class="'+(a.ok?'ok':'no')+'">'+a.q+'</div>';
+  }).join("");
+  var totalSec=Math.round((finishedAt-state.startedAt)/1000);
+  $("result-meta").textContent=state.fio+" · "+state.biz+" · "+state.dept+" · "+fmtDate(new Date(finishedAt));
+
+  var result={
+    fio:state.fio, biz:state.biz, dept:state.dept, score:s, total:n, durationSec:totalSec,
+    startedAt:new Date(state.startedAt).toISOString(),
+    finishedAt:new Date(finishedAt).toISOString(),
+    answers:state.answers.map(function(a){ return a.chosen; }).join(""),
+    details:state.answers
+  };
+  state.lastResult=result;
+
+  console.log("[MAGGI QUIZ RESULT]", JSON.stringify(result));
+  var all=storeGet(STORAGE_KEY,[]); all.push(result); storeSet(STORAGE_KEY,all);
+  storeDel(PROGRESS_KEY);
+  submitRemote(result);
+  show("screen-result");
+}
+
+function submitRemote(r){
+  if(!SUBMIT_URL){ $("send-status").textContent=""; return; }
+  $("send-status").textContent="Отправляем результат…";
+  var body=JSON.stringify(r);
+  var sent=false;
+  try{
+    fetch(SUBMIT_URL,{ method:"POST", mode:"no-cors", keepalive:true,
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, body:body })
+    .then(function(){ $("send-status").textContent="✓ Результат отправлен организаторам"; })
+    .catch(function(){
+      // запасной вариант для старых браузеров/плохой сети
+      try{ sent=navigator.sendBeacon && navigator.sendBeacon(SUBMIT_URL,body); }catch(e){}
+      $("send-status").textContent = sent ? "✓ Результат отправлен организаторам"
+        : "Не удалось отправить автоматически — нажмите «Отправить результат»";
+    });
+  }catch(e){
+    $("send-status").textContent="Нажмите «Отправить результат», чтобы передать его организаторам";
+  }
+}
+
+/* CSV: разделитель «;» и BOM — корректно открывается в русском Excel */
+function toCSV(rows){
+  function esc(v){ var s=(v===undefined||v===null)?"":String(v); return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+  var head=["ФИО","Бизнес","Отдел","Результат","Из","Время прохождения (сек)","Дата и время"]
+    .concat(QUESTIONS.map(function(_,i){ return "В"+(i+1); }));
+  var lines=rows.map(function(r){
+    return [r.fio,r.biz,r.dept,r.score,r.total,r.durationSec,fmtDate(new Date(r.finishedAt))]
+      .concat(r.details.map(function(d){ return d.timeout?"таймаут":(d.ok?"верно":"неверно ("+d.chosen+")"); }))
+      .map(esc).join(";");
+  });
+  return "﻿"+[head.map(esc).join(";")].concat(lines).join("\r\n");
+}
+function resultText(r){
+  return "Квиз «День борща» × MAGGI\nФИО: "+r.fio+"\nБизнес: "+r.biz+"\nОтдел: "+r.dept+
+         "\nРезультат: "+r.score+" из "+r.total+"\nДата: "+fmtDate(new Date(r.finishedAt));
+}
+function fileName(prefix){
+  var safe=(state.lastResult?state.lastResult.fio:"all").replace(/[^0-9A-Za-zА-Яа-яЁё]+/g,"_");
+  return prefix+"_"+safe+".csv";
+}
+function download(filename,content){
+  try{
+    var blob=new Blob([content],{type:"text/csv;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url; a.download=filename; a.rel="noopener";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },1500);
+    toast("Файл сохранен в «Загрузки»");
+  }catch(e){
+    toast("Браузер не разрешает скачивание — используйте «Отправить» или «Скопировать»");
+  }
+}
+function copyText(text){
+  function fallback(){
+    var ta=document.createElement("textarea");
+    ta.value=text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,99999);
+    var ok=false; try{ ok=document.execCommand("copy"); }catch(e){}
+    ta.remove();
+    toast(ok?"Скопировано — вставьте в мессенджер":"Не удалось скопировать — сделайте скриншот экрана");
+  }
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(function(){ toast("Скопировано — вставьте в мессенджер"); }, fallback);
+  } else fallback();
+}
+
+/* «Отправить»: на телефоне открывает системное меню «Поделиться»
+   (Telegram, WhatsApp, почта…). Если файлы не поддерживаются — делится текстом,
+   если меню нет совсем — скачивает CSV. */
+$("btn-share").addEventListener("click",function(){
+  var r=state.lastResult; if(!r) return;
+  var csv=toCSV([r]), text=resultText(r);
+  try{
+    if(navigator.share){
+      var file=null;
+      try{ file=new File([csv],fileName("maggi_quiz"),{type:"text/csv"}); }catch(e){}
+      var data = (file && navigator.canShare && navigator.canShare({files:[file]}))
+        ? {files:[file], title:"Результат квиза MAGGI", text:text}
+        : {title:"Результат квиза MAGGI", text:text};
+      navigator.share(data).catch(function(err){
+        if(err && err.name!=="AbortError") copyText(text);
+      });
+      return;
+    }
+  }catch(e){}
+  download(fileName("maggi_quiz"),csv);
+});
+$("btn-export").addEventListener("click",function(){
+  if(state.lastResult) download(fileName("maggi_quiz"),toCSV([state.lastResult]));
+});
+$("btn-copy").addEventListener("click",function(){
+  if(state.lastResult) copyText(resultText(state.lastResult));
+});
+$("btn-export-all").addEventListener("click",function(){
+  var all=storeGet(STORAGE_KEY,[]);
+  if(!all.length){ toast("На этом устройстве пока нет результатов"); return; }
+  download("maggi_quiz_all_"+new Date().toISOString().slice(0,10)+".csv",toCSV(all));
+  console.table(all.map(function(r){ return {ФИО:r.fio,Бизнес:r.biz,Отдел:r.dept,Результат:r.score+"/"+r.total,Сек:r.durationSec}; }));
+});
+$("btn-restart").addEventListener("click",function(){
+  $("reg-form").reset();
+  state.lastResult=null;
+  storeDel(PROGRESS_KEY);
+  $("send-status").textContent="";
+  show("screen-start");
+});
+
+/* =====================================================================
+   ВОССТАНОВЛЕНИЕ ПОСЛЕ ПЕРЕЗАГРУЗКИ СТРАНИЦЫ
+   ===================================================================== */
+(function resume(){
+  var p=storeGet(PROGRESS_KEY,null);
+  if(!p || !p.fio || p.index>=QUESTIONS.length) return;
+  if(Date.now()-p.startedAt > 60*60*1000){ storeDel(PROGRESS_KEY); return; } // старше часа — начать заново
+  state.fio=p.fio; state.biz=p.biz||""; state.dept=p.dept; state.index=p.index; state.score=p.score;
+  state.answers=p.answers||[]; state.startedAt=p.startedAt; state.qStartedAt=p.qStartedAt;
+  show("screen-quiz");
+  renderQuestion(true);
+  toast("Продолжаем с вопроса "+(state.index+1));
+})();
+</script>
+</body>
+</html>
